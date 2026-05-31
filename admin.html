@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VogueSphere Admin Panel | Control Center</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS (Shares styles.css for uniform aesthetics) -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="admin-body">
+    <!-- Background Glow Effects -->
+    <div class="glow-bg">
+        <div class="glow-circle circle-1"></div>
+        <div class="glow-circle circle-2"></div>
+    </div>
+
+    <!-- Toast Notification System -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-container" class="admin-auth-overlay">
+        <div class="auth-card glass-effect scale-up">
+            <div class="auth-header">
+                <h2><span class="logo-accent">T</span>ycoon</h2>
+                <p data-translate="auth_subtitle">พอร์ทัลจัดการแค็ตตา​ล็อก</p>
+            </div>
+            <div class="auth-icon-wrapper">
+                <i class="fa-solid fa-lock-open shield-anim"></i>
+            </div>
+            <form id="admin-login-form">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <input type="email" id="admin-email" placeholder="Email" class="glass-input" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <input type="password" id="admin-password" placeholder="Password" class="glass-input" required>
+                </div>
+                <button type="submit" class="primary-btn full-width ripple">
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+            <a href="index.html" class="back-link" data-translate="auth_back"><i class="fa-solid fa-arrow-left"></i> กลับสู่หน้าแค็ตตา​ล็อกหลัก</a>
+        </div>
+    </div>
+
+    <!-- 2. ACCESS DENIED SCREEN -->
+    <div id="denied-container" class="admin-auth-overlay hidden">
+        <div class="auth-card glass-effect border-danger scale-up">
+            <div class="auth-header text-danger">
+                <i class="fa-solid fa-triangle-exclamation warning-icon"></i>
+                <h2 data-translate="denied_title">ปฏิเสธการเข้าถึง</h2>
+            </div>
+            <p class="denied-message" data-translate="denied_desc">
+                อีเมล <strong id="denied-email"></strong> ของคุณไม่ได้ลงทะเบียนในระบบในฐานะผู้ดูแลระบบ โปรดติดต่อเจ้าของระบบเพื่อขอสิทธิ์การเข้าถึง
+            </p>
+            <button id="logout-denied-btn" class="secondary-btn full-width ripple" data-translate="denied_logout">
+                ลงชื่อออก / ใช้บัญชีอื่น
+            </button>
+            <a href="index.html" class="back-link" data-translate="auth_back"><i class="fa-solid fa-arrow-left"></i> กลับสู่หน้าแค็ตตา​ล็อกหลัก</a>
+        </div>
+    </div>
+
+    <!-- 3. MAIN DASHBOARD UI (Protected) -->
+    <div id="dashboard-container" class="dashboard-wrapper hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-effect">
+            <div class="sidebar-brand">
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <span class="logo-accent">T</span>ycoon
+                </a>
+            </div>
+            <div class="admin-profile">
+                <div class="avatar-placeholder"><i class="fa-solid fa-user-gear"></i></div>
+                <div class="profile-info">
+                    <span class="profile-email" id="admin-user-email">admin@voguesphere.com</span>
+                    <span class="profile-role" data-translate="profile_role">ผู้จัดการร้านค้า</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-tab-btn active" data-target="products-tab" data-translate="tab_products">
+                    <i class="fa-solid fa-shirt"></i> สินค้า
+                </button>
+                <button class="nav-tab-btn" data-target="variants-tab" data-translate="tab_variants">
+                    <i class="fa-solid fa-palette"></i> สีและคลังสินค้า
+                </button>
+                <button class="nav-tab-btn" data-target="promotions-tab" data-translate="tab_promotions">
+                    <i class="fa-solid fa-tags"></i> โปรโมชัน
+                </button>
+                <button class="nav-tab-btn" data-target="settings-tab" data-translate="tab_settings">
+                    <i class="fa-solid fa-sliders"></i> ตั้งค่าเว็บไซต์
+                </button>
+                <button class="nav-tab-btn" data-target="admins-tab" data-translate="tab_admins">
+                    <i class="fa-solid fa-users-gear"></i> ผู้ดูแลระบบ
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="logout-btn" data-translate="logout"><i class="fa-solid fa-right-from-bracket"></i> ลงชื่อออก</button>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Window -->
+        <main class="dashboard-main">
+            <!-- Top Dashboard Bar -->
+            <header class="dashboard-header glass-effect">
+                <h1 id="current-tab-title" data-translate="title_products">จัดการสินค้าในสต๊อก</h1>
+                <div class="header-actions">
+                    <!-- Bilingual Toggle -->
+                    <button id="admin-lang-toggle" class="lang-toggle-btn glass-btn" aria-label="Toggle Language">
+                        <i class="fa-solid fa-language"></i> EN
+                    </button>
+                    <a href="index.html" class="glass-btn text-link" data-translate="view_site"><i class="fa-solid fa-eye"></i> ดูเว็บไซต์</a>
+                    <button class="theme-toggle-btn glass-btn" id="admin-theme-toggle"><i class="fa-solid fa-moon"></i></button>
+                </div>
+            </header>
+
+            <!-- Scrollable Content Grid -->
+            <div class="dashboard-content-scroll">
+                
+                <!-- TAB 1: PRODUCTS -->
+                <section id="products-tab" class="tab-pane active">
+                    <div class="action-bar">
+                        <div class="search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="admin-search-products" data-translate="search_products_placeholder" placeholder="ค้นหาสินค้า...">
+                        </div>
+                        <button id="btn-add-product" class="primary-btn" data-translate="btn_new_product"><i class="fa-solid fa-plus"></i> เพิ่มสินค้าใหม่</button>
+                    </div>
+
+                    <!-- Products Table -->
+                    <div class="table-container glass-effect">
+                        <table class="admin-table" id="products-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="th_name">ชื่อสินค้า</th>
+                                    <th data-translate="th_cat">หมวดหมู่</th>
+                                    <th data-translate="th_gender">เพศ</th>
+                                    <th data-translate="th_price">ราคาเริ่มต้น</th>
+                                    <th data-translate="th_discount">ส่วนลดปัจจุบัน</th>
+                                    <th data-translate="th_actions">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- TAB 2: VARIANTS & STOCK -->
+                <section id="variants-tab" class="tab-pane">
+                    <div class="variants-layout-grid">
+                        <!-- Left: Variant Form -->
+                        <div class="glass-card panel-card">
+                            <h3 class="panel-title" data-translate="card_add_variant"><i class="fa-solid fa-square-plus"></i> เพิ่มสีสินค้า</h3>
+                            <form id="variant-form" class="admin-form">
+                                <div class="form-group">
+                                    <label for="variant-product-select" data-translate="label_select_product">เลือกสินค้าหลัก</label>
+                                    <select id="variant-product-select" class="glass-select" required>
+                                        <option value="" data-translate="label_select_product">-- เลือกสินค้าหลัก --</option>
+                                        <!-- Loaded via JS -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <div class="form-row-2">
+                                        <div class="form-group">
+                                            <label for="variant-color" data-translate="label_color_name">ชื่อสีสินค้า</label>
+                                            <input type="text" id="variant-color" placeholder="เช่น Midnight Black" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="variant-color-hex">โค้ดสี (HEX)</label>
+                                            <div style="display: flex; gap: 10px; align-items: center;">
+                                                <input type="color" id="variant-color-hex" value="#000000" style="width: 50px; height: 44px; cursor: pointer; background: transparent; border: 1px solid var(--border-glass); border-radius: var(--radius-sm); padding: 2px;">
+                                                <span id="variant-color-hex-display" style="font-family: monospace; font-size: 0.9rem;">#000000</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="variant-stock" data-translate="label_stock_qty">จำนวนสต็อก</label>
+                                    <input type="number" id="variant-stock" min="0" value="10" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="variant-image" data-translate="label_variant_image">รูปภาพสินค้า (อัปโหลดเข้า Supabase Storage)</label>
+                                    <div class="file-upload-wrapper">
+                                        <input type="file" id="variant-image" accept="image/*" class="file-upload-input">
+                                        <div class="file-upload-trigger glass-btn" data-translate="file_select">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i> เลือกไฟล์รูปภาพ
+                                        </div>
+                                        <span id="file-name-display" class="file-name" data-translate="file_no_chosen">ยังไม่ได้เลือกไฟล์</span>
+                                    </div>
+                                    <p class="form-help" data-translate="file_help">รูปภาพจะถูกอัปโหลดไปยังหน่วยเก็บข้อมูลสาธารณะ `product-images` ของคุณ</p>
+                                </div>
+                                
+                                <div class="form-group variant-image-preview-container hidden" id="variant-preview-container">
+                                    <label data-translate="preview_label">ภาพตัวอย่างรูปที่อัปโหลด</label>
+                                    <img id="variant-upload-preview" src="" alt="Variant Preview" class="variant-img-preview glass-effect">
+                                </div>
+
+                                <button type="submit" class="primary-btn ripple" data-translate="btn_upload_save"><i class="fa-solid fa-upload"></i> อัปโหลดและบันทึกข้อมูลสีสินค้า</button>
+                            </form>
+                        </div>
+
+                        <!-- Right: Live Table representation -->
+                        <div class="glass-card panel-card flex-grow">
+                            <h3 class="panel-title" data-translate="card_active_variants"><i class="fa-solid fa-palette"></i> สีและคลังสินค้าที่มีอยู่ในระบบ</h3>
+                            <div class="filter-row">
+                                <select id="filter-variants-product" class="glass-select">
+                                    <option value="all" data-translate="option_all_prods">แสดงสินค้าทั้งหมด</option>
+                                    <!-- Loaded via JS -->
+                                </select>
+                            </div>
+                            <div class="table-container">
+                                <table class="admin-table" id="variants-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-translate="th_prod">สินค้า</th>
+                                            <th data-translate="th_color">สี</th>
+                                            <th data-translate="th_img">รูปภาพ</th>
+                                            <th data-translate="th_stock">จำนวนคงเหลือ</th>
+                                            <th data-translate="th_actions">จัดการ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Loaded via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: PROMOTIONS -->
+                <section id="promotions-tab" class="tab-pane">
+                    <div class="variants-layout-grid">
+                        <div class="glass-card panel-card">
+                            <h3 class="panel-title" data-translate="card_apply_promo"><i class="fa-solid fa-percent"></i> ประยุกต์ใช้ส่วนลดพิเศษ</h3>
+                            <form id="promo-form" class="admin-form">
+                                <div class="form-group">
+                                    <label for="promo-product-select" data-translate="label_target_prod">เลือกสินค้าเป้าหมาย</label>
+                                    <select id="promo-product-select" class="glass-select" required>
+                                        <option value="" data-translate="label_target_prod">-- เลือกสินค้าเป้าหมาย --</option>
+                                        <!-- Loaded via JS -->
+                                    </select>
+                                </div>
+                                <div class="form-row-2">
+                                    <div class="form-group">
+                                        <label for="promo-discount-type" data-translate="label_disc_type">ประเภทส่วนลด</label>
+                                        <select id="promo-discount-type" class="glass-select" required>
+                                            <option value="none" data-translate="opt_disc_none">ไม่มี (ราคาปกติ)</option>
+                                            <option value="percentage" data-translate="opt_disc_pct">คิดเป็นเปอร์เซ็นต์ (%)</option>
+                                            <option value="fixed" data-translate="opt_disc_fixed">ลบเป็นจำนวนเงินตรงตัว ($)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="promo-discount-value" data-translate="label_disc_value">มูลค่าส่วนลด</label>
+                                        <input type="number" id="promo-discount-value" min="0" step="0.01" value="0">
+                                    </div>
+                                </div>
+                                <button type="submit" class="primary-btn ripple" data-translate="btn_save_promo"><i class="fa-solid fa-floppy-disk"></i> ประยุกต์ใช้ราคาโปรโมชัน</button>
+                            </form>
+                        </div>
+                        
+                        <div class="glass-card panel-card">
+                            <h3 class="panel-title" data-translate="guideline_title"><i class="fa-solid fa-circle-info"></i> คำแนะนำเกี่ยวกับโปรโมชัน</h3>
+                            <div class="promo-guidelines" data-translate="guideline_desc">
+                                <ul>
+                                    <li><strong>ลดเป็นเปอร์เซ็นต์ (%):</strong> คำนวณเป็น <code>ราคาเริ่มต้น * (1 - มูลค่าส่วนลด/100)</code> ตัวอย่างเช่น ส่วนลด 15% สำหรับสินค้าราคา $100 จะขายที่ $85</li>
+                                    <li><strong>ลดเป็นเงินตรงตัว:</strong> หักออกจากราคาเริ่มต้นทันที: <code>ราคาเริ่มต้น - มูลค่าส่วนลด</code> ถ้าราคาติดลบ ระบบจะปัดขึ้นเป็น $0</li>
+                                    <li>ราคาโปรโมชันจะแสดงผลบนหน้าเว็บทันที ลูกค้าจะเห็นราคาเดิมที่ขีดฆ่าและป้ายส่วนลด</li>
+                                    <li>หากต้องการยกเลิกส่วนลด ให้ตั้งประเภทส่วนลดเป็น **ไม่มี (ราคาปกติ)**</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: SITE SETTINGS -->
+                <section id="settings-tab" class="tab-pane">
+                    <div class="glass-card panel-card max-width-full">
+                        <h3 class="panel-title" data-translate="card_edit_contact"><i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูลการติดต่อในส่วนท้ายเว็บ</h3>
+                        <p class="panel-desc" data-translate="settings_desc">ระบุช่องทางติดต่อและที่ตั้งร้านเพื่อแสดงผลที่ส่วนล่างสุดของหน้าเว็บไซต์แค็ตตา​ล็อกหลัก รองรับการพิมพ์ข้อความธรรมดาหรือโครงสร้าง HTML</p>
+                        <form id="settings-form" class="admin-form">
+                            <div class="form-group">
+                                <label for="settings-header">Header Title</label>
+                                <input type="text" id="settings-header" placeholder="เช่น ติดต่อเรา" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-email">Email</label>
+                                <input type="email" id="settings-email" placeholder="เช่น info@yoursite.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-phone">Phone Number</label>
+                                <input type="text" id="settings-phone" placeholder="เช่น 080-123-4567" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="settings-address">Address</label>
+                                <textarea id="settings-address" rows="3" class="glass-textarea" placeholder="ที่อยู่ร้าน..." required></textarea>
+                            </div>
+                            <button type="submit" class="primary-btn ripple" data-translate="btn_save_settings"><i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลการติดต่อ</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- TAB 5: ADMINS -->
+                <section id="admins-tab" class="tab-pane">
+                    <div class="variants-layout-grid">
+                        <div class="glass-card panel-card">
+                            <h3 class="panel-title" data-translate="card_admins_auth"><i class="fa-solid fa-user-shield"></i> สิทธิ์เข้าถึงของผู้ดูแลระบบ</h3>
+                            <p class="panel-desc" data-translate="admins_desc">เฉพาะอีเมลที่อยู่ในรายชื่อต่อไปนี้เท่านั้นที่สามารถเข้าสู่ระบบ VogueCenter เพื่อเพิ่ม/แก้ไขคลังเสื้อผ้าได้</p>
+                            
+                            <form id="add-admin-form" class="admin-form">
+                                <div class="form-group">
+                                    <label for="admin-email-input" data-translate="label_admin_email">ที่อยู่อีเมลผู้ดูแลระบบใหม่</label>
+                                    <input type="email" id="admin-email-input" placeholder="เช่น coordinator@domain.com" required>
+                                </div>
+                                <button type="submit" class="primary-btn ripple" data-translate="btn_auth_email"><i class="fa-solid fa-user-plus"></i> อนุมัติสิทธิ์เข้าใช้งาน</button>
+                            </form>
+                        </div>
+
+                        <div class="glass-card panel-card">
+                            <h3 class="panel-title" data-translate="card_admins_dir"><i class="fa-solid fa-users"></i> บัญชีรายชื่อผู้ดูแลระบบในระบบ</h3>
+                            <div class="table-container">
+                                <table class="admin-table" id="admins-table">
+                                    <thead>
+                                        <tr>
+                                            <th data-translate="th_email">อีเมลแอดเดรส</th>
+                                            <th data-translate="th_role">ระดับสิทธิ์</th>
+                                            <th data-translate="th_remove">ถอนสิทธิ์</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Loaded via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- PRODUCT CRUD MODAL (ADD / EDIT) -->
+    <div id="product-crud-modal" class="modal-overlay hidden">
+        <div class="modal-content glass-effect scale-up">
+            <button class="modal-close-btn" id="close-crud-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+            <h2 id="crud-modal-title" class="modal-section-title" data-translate="crud_modal_new">เพิ่มสินค้าในแค็ตตา​ล็อก</h2>
+            <form id="product-crud-form" class="admin-form">
+                <input type="hidden" id="crud-product-id">
+                
+                <div class="form-group">
+                    <label for="crud-product-name" data-translate="label_crud_title">ชื่อสินค้า</label>
+                    <input type="text" id="crud-product-name" placeholder="เช่น Premium Wool Coat" required>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="crud-product-category" data-translate="label_crud_cat">หมวดหมู่</label>
+                        <input type="text" id="crud-product-category" placeholder="เช่น Outerwear, Shirts" list="categories-datalist" required>
+                        <datalist id="categories-datalist">
+                            <option value="Shirts">
+                            <option value="Pants">
+                            <option value="Outerwear">
+                            <option value="Dresses">
+                            <option value="Shoes">
+                            <option value="Accessories">
+                        </datalist>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crud-product-gender" data-translate="label_crud_gender">เพศ</label>
+                        <select id="crud-product-gender" class="glass-select" required>
+                            <option value="Unisex">Unisex</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="crud-product-price" data-translate="label_crud_price">ราคาเริ่มต้น ($ USD)</label>
+                    <input type="number" id="crud-product-price" min="0" step="0.01" placeholder="99.99" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="crud-product-image" data-translate="label_product_image">รูปภาพหลักของสินค้า (อัปโหลดเข้า Supabase Storage)</label>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="crud-product-image" accept="image/*" class="file-upload-input">
+                        <div class="file-upload-trigger glass-btn" data-translate="file_select">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> เลือกไฟล์รูปภาพ
+                        </div>
+                        <span id="crud-file-name-display" class="file-name" data-translate="file_no_chosen">ยังไม่ได้เลือกไฟล์</span>
+                    </div>
+                </div>
+                
+                <div class="form-group variant-image-preview-container hidden" id="crud-product-preview-container">
+                    <label data-translate="preview_label">ภาพตัวอย่างรูปที่อัปโหลด</label>
+                    <img id="crud-product-upload-preview" src="" alt="Product Preview" class="variant-img-preview glass-effect">
+                </div>
+
+                <div class="modal-action-buttons">
+                    <button type="button" class="secondary-btn" id="btn-cancel-product" data-translate="btn_cancel">ยกเลิก</button>
+                    <button type="submit" class="primary-btn ripple" id="btn-save-product" data-translate="btn_save">บันทึกข้อมูลสินค้า</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin JS Logic -->
+    <script src="admin.js"></script>
+</body>
+</html>
